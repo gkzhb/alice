@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "agno>=1.7.2",
+    "lancedb>=0.24.0",
     "litellm>=1.74.1",
     "python-dotenv>=1.1.1",
     "sqlalchemy>=2.0.41",
