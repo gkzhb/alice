@@ -9,14 +9,23 @@ from agno.vectordb.lancedb import LanceDb
 from agno.document.base import Document
 from agno.knowledge.document import DocumentKnowledgeBase
 from agno.embedder.openai import OpenAIEmbedder
+from agno.memory.v2.db.sqlite import SqliteMemoryDb
+from agno.memory.v2.memory import Memory
 
+load_dotenv()
 
+model = LiteLLM(
+    id='volcengine/deepseek-v3-250324',
+    name='DeepSeek V3',
+)
+
+sqlite_db = "data/dev/sessions.db"
 # Create a storage backend using the Sqlite database
 storage = SqliteStorage(
     # store sessions in the ai.sessions table
     table_name="agent_sessions",
     # db_file: Sqlite database file
-    db_file="data/dev/sessions.db",
+    db_file=sqlite_db,
 )
 
 fun_facts = """
@@ -53,7 +62,13 @@ knowledge_base = DocumentKnowledgeBase(
 # Load the knowledge base
 knowledge_base.load(recreate=False)
 
-load_dotenv()
+# Initialize memory.v2
+memory = Memory(
+    # Use any model for creating memories
+    model=model,
+    db=SqliteMemoryDb(table_name="user_memories", db_file=sqlite_db),
+)
+
 
 @tool(show_result=True, stop_after_tool_call=True)
 def add_number(a: int, b:int) -> int:
@@ -62,17 +77,38 @@ def add_number(a: int, b:int) -> int:
 
 def main():
     agent = Agent(
-        model=LiteLLM(
-            id='volcengine/deepseek-v3-250324',
-            name='DeepSeek V3',
-        ),
+        model=model,
         tools=[add_number],
         markdown=True,
         storage=storage,
         knowledge=knowledge_base,
         # add_references=True,
+        # Store memories in a database
+        memory=memory,
+        # Give the Agent the ability to update memories
+        enable_agentic_memory=True,
+        # OR - Run the MemoryManager after each response
+        enable_user_memories=True,
+        # Add the chat history to the messages
+        add_history_to_messages=True,
+        # Number of history runs
+        num_history_runs=3,
     )
-    agent.print_response('Ask me about something from the knowledge base about Earth', stream=True)
+    # User ID for the memory
+    user_id = "gkzhb@example.com"
+    agent.print_response(
+        'I am gkzhb, a frontend engineer. I like programming and playing games.',
+        stream=True,
+        user_id=user_id,
+    )
+    agent.print_response(
+        'Who am I?',
+        stream=True,
+        user_id=user_id,
+    )
+    memories = memory.get_user_memories(user_id=user_id)
+    print(f"Memories about me: {len(memories)}")
+    print(memories[1])
 
 
 if __name__ == "__main__":
