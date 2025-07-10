@@ -8,4 +8,5 @@ dependencies = [
     "agno>=1.7.2",
     "litellm>=1.74.1",
     "python-dotenv>=1.1.1",
+    "sqlalchemy>=2.0.41",
 ]
