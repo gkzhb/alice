@@ -1,9 +1,15 @@
-from agno.agent import Agent
-from agno.models.litellm import LiteLLM
-import os
 from dotenv import load_dotenv
 
+from agno.agent import Agent
+from agno.models.litellm import LiteLLM
+from agno.tools import tool
+
 load_dotenv()
+
+@tool(show_result=True, stop_after_tool_call=True)
+def add_number(a: int, b:int) -> int:
+    """Calculate sum of two numbers"""
+    return a+b
 
 def main():
     agent = Agent(
@@ -11,9 +17,10 @@ def main():
             id='volcengine/deepseek-v3-250324',
             name='DeepSeek V3',
         ),
-        markdown=True
+        tools=[add_number],
+        markdown=True,
     )
-    agent.print_response('你能做什么', stream=True)
+    agent.print_response('计算 55+24', stream=True)
 
 
 if __name__ == "__main__":
