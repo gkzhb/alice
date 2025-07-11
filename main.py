@@ -67,7 +67,11 @@ def add_number(a: int, b:int) -> int:
     return a+b
 
 async def main():
-    async with MCPTools(url=crawl4ai_server_url, transport="streamable-http") as mcp_tools:
+    async with MCPTools(
+        url=crawl4ai_server_url,
+        transport="streamable-http",
+        timeout_seconds=30,
+    ) as mcp_tools:
         agent = Agent(
             model=ds_reasoning_model,
             tools=[mcp_tools],
