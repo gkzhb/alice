@@ -2,7 +2,6 @@ import os
 from dotenv import load_dotenv
 
 from agno.agent import Agent
-from agno.models.litellm import LiteLLM
 from agno.tools import tool
 from agno.storage.sqlite import SqliteStorage
 from agno.vectordb.lancedb import LanceDb
@@ -12,20 +11,17 @@ from agno.embedder.openai import OpenAIEmbedder
 from agno.memory.v2.db.sqlite import SqliteMemoryDb
 from agno.memory.v2.memory import Memory
 
+from alice.model.llm import ds_chat_model
+from alice.db import sqlite_db_path, lance_db
+
 load_dotenv()
 
-model = LiteLLM(
-    id='volcengine/deepseek-v3-250324',
-    name='DeepSeek V3',
-)
-
-sqlite_db = "data/dev/sessions.db"
 # Create a storage backend using the Sqlite database
 storage = SqliteStorage(
     # store sessions in the ai.sessions table
     table_name="agent_sessions",
     # db_file: Sqlite database file
-    db_file=sqlite_db,
+    db_file=sqlite_db_path,
 )
 
 fun_facts = """
@@ -44,16 +40,7 @@ fun_facts = """
 # Load documents from the data/docs directory
 documents = [Document(content=fun_facts)]
 
-vector_db = LanceDb(
-    table_name="recipes",
-    uri="data/dev/lancedb",  # You can change this path to store data elsewhere
-    embedder=OpenAIEmbedder(
-        id='BAAI/bge-m3',
-        dimensions=1024,
-        api_key=os.getenv('SILICONFLOW_API_KEY'),
-        base_url='https://api.siliconflow.cn/v1',
-    )
-)
+vector_db = lance_db
 # Create a knowledge base with the loaded documents
 knowledge_base = DocumentKnowledgeBase(
     documents=documents,
@@ -65,8 +52,8 @@ knowledge_base.load(recreate=False)
 # Initialize memory.v2
 memory = Memory(
     # Use any model for creating memories
-    model=model,
-    db=SqliteMemoryDb(table_name="user_memories", db_file=sqlite_db),
+    model=ds_chat_model,
+    db=SqliteMemoryDb(table_name="user_memories", db_file=sqlite_db_path),
 )
 
 
@@ -77,7 +64,7 @@ def add_number(a: int, b:int) -> int:
 
 def main():
     agent = Agent(
-        model=model,
+        model=ds_chat_model,
         tools=[add_number],
         markdown=True,
         storage=storage,
@@ -96,11 +83,11 @@ def main():
     )
     # User ID for the memory
     user_id = "gkzhb@example.com"
-    agent.print_response(
-        'I am gkzhb, a frontend engineer. I like programming and playing games.',
-        stream=True,
-        user_id=user_id,
-    )
+    # agent.print_response(
+    #     'I am gkzhb, a frontend engineer. I like programming and playing games.',
+    #     stream=True,
+    #     user_id=user_id,
+    # )
     agent.print_response(
         'Who am I?',
         stream=True,
