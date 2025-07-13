@@ -10,6 +10,7 @@ dependencies = [
     "lancedb>=0.24.0",
     "litellm>=1.74.1",
     "mcp>=1.11.0",
+    "nest-asyncio>=1.6.0",
     "python-dotenv>=1.1.1",
     "sqlalchemy>=2.0.41",
 ]

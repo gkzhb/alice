@@ -1,6 +1,5 @@
-import os
 import asyncio
-from dotenv import load_dotenv
+import nest_asyncio
 
 from agno.agent import Agent
 from agno.tools import tool
@@ -17,8 +16,6 @@ from alice.model.llm import ds_chat_model, ds_reasoning_model
 from alice.db import sqlite_db_path, lance_db
 # from alice.data_source.agno_doc import agno_kb
 from alice.tool.crawl4ai import crawl4ai_server_url
-
-load_dotenv()
 
 # Create a storage backend using the Sqlite database
 storage = SqliteStorage(
@@ -46,12 +43,12 @@ documents = [Document(content=fun_facts)]
 
 vector_db = lance_db
 # Create a knowledge base with the loaded documents
-knowledge_base = DocumentKnowledgeBase(
-    documents=documents,
-    vector_db=vector_db,
-)
+# knowledge_base = DocumentKnowledgeBase(
+#     documents=documents,
+#     vector_db=vector_db,
+# )
 # Load the knowledge base
-knowledge_base.load(recreate=False)
+# knowledge_base.load(recreate=False)
 
 # Initialize memory.v2
 memory = Memory(
