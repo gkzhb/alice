@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from agno.agent import Agent
+from agno.agent import Agent, AgentKnowledge
 from agno.models.base import Model
 from agno.storage.base import Storage
 from alice.utils.agent import get_agent_id
@@ -13,8 +13,10 @@ class TranslaterAgent:
     name = 'Translater'
     version = '20250714-1'
     agent: Agent
-    def __init__(self, model: Model, storage: Storage):
+    kb: AgentKnowledge
+    def __init__(self, model: Model, storage: Storage, kb: AgentKnowledge):
         prompt = translater_system_prompt.get_prompt({"original_language": "英文", "target_language": "中文"})
+        self.kb = kb
         self.agent = Agent(
             model=model,
             name=self.name,
@@ -23,10 +25,16 @@ class TranslaterAgent:
             storage=storage,
             response_model=TranslateScript,
             use_json_mode=True,
+            knowledge=kb,
+            search_knowledge=True,
+            # memory=memory,
             # debug_mode=True,
         )
     
     def run(self, glossary: str, context: str, text: str):
         user_prompt = translater_user_prompt.get_prompt({"glossary":glossary, "context": context, "text": text})
         resp = self.agent.run(user_prompt)
+        glossary = resp.content.glossary
+        translated_text = resp.content.translated
+        self.kb.load_text(glossary)
         return resp

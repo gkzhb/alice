@@ -13,4 +13,5 @@ dependencies = [
     "nest-asyncio>=1.6.0",
     "python-dotenv>=1.1.1",
     "sqlalchemy>=2.0.41",
+    "tantivy>=0.24.0",
 ]
