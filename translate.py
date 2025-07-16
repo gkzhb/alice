@@ -71,47 +71,38 @@ async def process_chunks(doc_list, output_file, log_file):
 
     # Process results as they complete but maintain order
     results: List[Optional[Tuple[int, str, Any, str]]] = [None] * len(tasks)
-    for future in asyncio.as_completed(tasks):
-        try:
-            result = await future
-            if not isinstance(result, (tuple, list)) or len(result) != 4:
-                raise ValueError(f"Invalid result format: {result}")
-            idx, doc, resp, prev_doc = result
-            results[idx] = (idx, doc, resp, prev_doc)
-        except Exception as e:
-            print(f"Error processing task result: {str(e)}")
-            # Skip this result as we can't determine its index
-
-    # Write all results in original order
     with (
-        open(output_file, "w", encoding="utf-8") as f,
-        open(log_file, "w", encoding="utf-8") as log,
+        open(output_file, "a", encoding="utf-8") as f,
+        open(log_file, "a", encoding="utf-8") as log,
     ):
-        for result in results:
-            if (
-                result is None
-                or not isinstance(result, (tuple, list))
-                or len(result) != 4
-                or result[2] is None
-            ):
-                continue  # Skip invalid or failed tasks
-            idx, doc, resp, prev_doc = result
-            f.write(resp.content.translated + "\n")
-            log.write(
-                json.dumps(
-                    {
-                        "index": idx,
-                        "doc": doc,
-                        "prev_doc": prev_doc,
-                        "translated": resp.content.translated,
-                    },
-                    ensure_ascii=False,
-                )
-                + "\n"
-            )
-        # Single flush at the end
-        f.flush()
-        log.flush()
+        for future in asyncio.as_completed(tasks):
+            try:
+                result = await future
+                if not isinstance(result, (tuple, list)) or len(result) != 4:
+                    raise ValueError(f"Invalid result format: {result}")
+                idx, doc, resp, prev_doc = result
+                results[idx] = (idx, doc, resp, prev_doc)
+
+                # Write valid results immediately
+                if resp is not None:
+                    f.write(resp.content.translated + "\n")
+                    log.write(
+                        json.dumps(
+                            {
+                                "index": idx,
+                                "doc": doc,
+                                "prev_doc": prev_doc,
+                                "translated": resp.content.translated,
+                            },
+                            ensure_ascii=False,
+                        )
+                        + "\n"
+                    )
+                    f.flush()
+                    log.flush()
+            except Exception as e:
+                print(f"Error processing task result: {str(e)}")
+                # Skip this result as we can't determine its index
 
 
 async def main():
