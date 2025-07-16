@@ -1,3 +1,4 @@
+import json
 from agno.storage.sqlite import SqliteStorage
 from agno.agent import AgentKnowledge
 from agno.vectordb.lancedb import LanceDb
@@ -37,32 +38,47 @@ terms:
     pprint_run_response(resp)
     return resp
     
-def chunk_file():
-    with open('./data/input/antinet-zk.txt') as f:
+def chunk_file(input: str, output: str):
+    with open(input) as f:
         doc = f.read()
         docs = chunk_doc(doc)
-        return docs
 
-doc_list = chunk_file()
-prev_doc = ""
-output_file = './data/output/antinet-translated.txt'
-print(f'chunk list len:{len(doc_list)}')
-if len(doc_list) < 10:
+    with open(f'{output}.json', 'w', encoding='utf-8') as f:
+        content = {
+            "file": input,
+            "chunks": [doc.content for doc in docs],
+        }
+        f.write(json.dumps(content, ensure_ascii=False))
+        return content
+
+doc_list = chunk_file('./data/input/antinet-zk.txt', './data/output/antinet-chunks')
+print(f'chunk list len:{len(doc_list["chunks"])}')
+if len(doc_list['chunks']) < 10:
     print('chunk failed')
     exit(0)
 
-# 确保输出目录存
-import os
-os.makedirs(os.path.dirname(output_file), exist_ok=True)
-
+output_file = './data/output/antinet-translated2.txt'
+# jsonl log file to preserve running info
+log_file = './data/output/antinet-translated.log'
 # 清空或创建文件
-with open(output_file, 'w', encoding='utf-8') as f:
-    pass
+# with open(output_file, 'w', encoding='utf-8') as f:
+#     pass
 
-for doc in doc_list:
-    resp = run_translate(doc.content, prev_doc)
-    prev_doc = doc.content[-1200:]
-    
-    # 将当前翻译结果追加到文件
-    with open(output_file, 'a', encoding='utf-8') as f:
+# previous doc content
+prev_doc = ""
+with open(output_file, 'a', encoding='utf-8') as f, open(log_file, 'a', encoding='utf-8') as log:
+    for idx, doc in enumerate(doc_list['chunks']):
+        resp = run_translate(doc, prev_doc)
+        # 将当前翻译结果追加到文件
         f.write(resp.content.translated + '\n')
+        log.write(json.dumps({
+            "index": idx,
+            "doc": doc,
+            "prev_doc": prev_doc,
+            "translated": resp.content.translated,
+            }, ensure_ascii=False) + '\n')
+
+        prev_doc = doc[-1200:]
+        # flush written files
+        f.flush()
+        log.flush()

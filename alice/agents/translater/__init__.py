@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field
 from agno.agent import Agent, AgentKnowledge
 from agno.models.base import Model
 from agno.storage.base import Storage
+from agno.utils.pprint import pprint_run_response
 from alice.utils.agent import get_agent_id
 from .prompt import translater_system_prompt, translater_user_prompt
 
@@ -24,7 +25,7 @@ class TranslaterAgent:
             system_message=prompt,
             storage=storage,
             response_model=TranslateScript,
-            use_json_mode=True,
+            # use_json_mode=True,
             knowledge=kb,
             search_knowledge=True,
             # memory=memory,
@@ -34,7 +35,16 @@ class TranslaterAgent:
     def run(self, glossary: str, context: str, text: str):
         user_prompt = translater_user_prompt.get_prompt({"glossary":glossary, "context": context, "text": text})
         resp = self.agent.run(user_prompt)
+        if not isinstance(resp.content, TranslateScript):
+            # 调试用：打印完整响应以便排查问题
+            print(f"[DEBUG] Invalid response format: {resp}")
+            pprint_run_response(resp)
+            raise ValueError(
+                f"Response content must be a dictionary, got {type(resp.content)}. "
+                f"Full response: {resp}"
+            )
         glossary = resp.content.glossary
-        translated_text = resp.content.translated
-        self.kb.load_text(glossary)
+        # translated_text = resp.content.translated
+        if glossary:
+            self.kb.load_text(glossary)
         return resp
