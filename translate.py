@@ -124,7 +124,7 @@ async def main():
         print("chunk failed")
         return
 
-    baes_file_name = "antinet-translated3"
+    baes_file_name = "antinet-translated4"
     output_file = f"./data/output/{baes_file_name}.txt"
     log_file = f"./data/output/{baes_file_name}.log"
 

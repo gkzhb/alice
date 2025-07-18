@@ -44,17 +44,31 @@ class TranslaterAgent:
         user_prompt = translater_user_prompt.get_prompt(
             {"glossary": glossary, "context": context, "text": text}
         )
-        resp = await self.agent.arun(user_prompt)
-        if not isinstance(resp.content, TranslateScript):
-            print("[DEBUG] Invalid response format, attempting to fix...")
-            fixed_resp = await self.fixer.arun(resp.content)
-            if not isinstance(fixed_resp, TranslateScript):
+        max_retries = 3
+        retry_count = 0
+        resp = None
+
+        while retry_count <= max_retries:
+            resp = await self.agent.arun(user_prompt)
+            if isinstance(resp.content, TranslateScript):
+                break
+
+            print(
+                f"[DEBUG] Invalid response format, attempting to retry ({retry_count + 1}/{max_retries})"
+            )
+
+            retry_count += 1
+            if retry_count > max_retries:
                 pprint_run_response(resp)
                 raise ValueError(
-                    f"Failed to fix response format. Original type: {type(resp.content)}. "
-                    f"Fixed type: {type(fixed_resp)}. Full response: {resp}"
+                    f"Failed to translate after {max_retries} retries. "
+                    f"Get type: {type(resp.content)}. "
+                    f"Full response: {resp}"
                 )
-            resp.content = fixed_resp
+
+        if resp is None:
+            raise RuntimeError("Unexpected error: response is None")
+
         glossary = resp.content.glossary
         if glossary:
             self.kb.load_text(glossary)
